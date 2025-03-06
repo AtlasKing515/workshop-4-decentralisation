@@ -25,20 +25,30 @@ export async function launchRegistry() {
 
   // Route pour vérifier si le registre fonctionne
   _registry.get("/status", (req: Request, res: Response) => {
-    res.json({ status: "Registry is running", nodeCount: nodes.length });
+    res.send("live");
   });
 
-  // Route pour enregistrer un nœud
-  _registry.post("/register", (req: Request, res: Response) => {
+  
+  _registry.get("/getNodeRegistry", (req: Request, res: Response) => {
+    console.log("✅ Route /getNodeRegistry appelée !");
+    return res.json({ nodes });
+  });
+  
+  _registry.post("/register", (req, res) => {
     const { nodeId, pubKey } = req.body;
-
+    console.log(`🛠️ [DEBUG] Enregistrement du nœud ${nodeId} avec clé ${pubKey}`);
     if (!nodeId || !pubKey) {
-      return res.status(400).json({ error: "Missing nodeId or pubKey" });
+        console.log("❌ Enregistrement échoué : nodeId ou pubKey manquant");
+        return res.status(400).json({ error: "Missing nodeId or pubKey" });
     }
-
-    nodes.push({ nodeId, pubKey });
+    if (!nodes.some(n => n.nodeId === nodeId)) {
+        nodes.push({ nodeId, pubKey });
+    }
+    console.log(`✅ Nœud enregistré avec succès. Total : ${nodes.length}`);
     return res.json({ message: "Node registered successfully", nodes });
-  });
+});
+
+
 
   console.log(`Tentative de démarrage du registre sur le port ${REGISTRY_PORT}...`);
 
@@ -50,6 +60,10 @@ _registry.get("/nodes", (req: Request, res: Response) => {
   const server = _registry.listen(REGISTRY_PORT, () => {
     console.log(`Registry is listening on port ${REGISTRY_PORT}`);
   });
+
+  server.on("error", (err) => {
+    console.error(`❌ Erreur sur le registre :`, err);
+  });  
 
   return server;
 }
